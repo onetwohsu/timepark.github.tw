@@ -3,301 +3,192 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>時光樂園 - 終極榮耀版</title>
+    <title>時光樂園 - 極速流暢修正版</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://unpkg.com/aframe-environment-component@1.3.1/dist/aframe-environment-component.min.js"></script>
     
     <script>
       let collectedShards = 0;
       let bgmInstance = null;
+      let moveKeyStatus = { up: false, down: false, left: false, right: false };
+      let isRunning = false;
 
-      // 1. 終極慶典系統
+      // 1. 高效能慶典系統
       AFRAME.registerComponent('celebration-system', {
-        init: function () { this.active = false; },
-        tick: function (time, timeDelta) {
+        init: function () { 
+          this.active = false;
+          this.particlePool = 0;
+        },
+        tick: function () {
           if (!this.active) return;
-          if (Math.random() > 0.9) this.createMegaFirework(); 
-          for (let i = 0; i < 12; i++) { 
-            if (Math.random() > 0.4) this.createSuperConfetti();
+          if (Math.random() > 0.96) this.createMegaFirework(); 
+          if (this.particlePool < 40) {
+            this.createSuperConfetti();
           }
         },
         createMegaFirework: function () {
-          const colors = ['#FF00FF', '#00FFFF', '#FFD700', '#FF4500', '#7FFF00', '#FFFFFF'];
-          const startX = 0, startY = 20, startZ = 0;
-          for(let i=0; i<40; i++) { 
+          const colors = ['#FF00FF', '#00FFFF', '#FFD700'];
+          for(let i=0; i<10; i++) { 
             const fw = document.createElement('a-box');
             const randomColor = colors[Math.floor(Math.random() * colors.length)];
-            const targetX = (Math.random() - 0.5) * 80; 
-            const targetY = 70 + (Math.random() * 50);
-            const targetZ = (Math.random() - 0.5) * 80;
-            fw.setAttribute('position', {x: startX, y: startY, z: startZ}); 
-            fw.setAttribute('scale', '2 2 2'); 
+            fw.setAttribute('position', {x: 0, y: 20, z: 0}); 
+            fw.setAttribute('scale', '1.5 1.5 1.5'); 
             fw.setAttribute('color', randomColor);
-            fw.setAttribute('material', 'shader: flat; emissive: ' + randomColor + '; emissiveIntensity: 4');
-            fw.setAttribute('animation', { property: 'position', to: `${targetX} ${targetY} ${targetZ}`, dur: 1000 + Math.random()*500, easing: 'easeOutExpo' });
-            fw.setAttribute('animation__fade', { property: 'scale', to: '0 0 0', dur: 2500, easing: 'easeInQuad' });
+            fw.setAttribute('material', 'shader: flat; emissive: ' + randomColor);
+            fw.setAttribute('animation', { property: 'position', to: `${(Math.random()-0.5)*40} ${60+Math.random()*20} ${(Math.random()-0.5)*40}`, dur: 1000, easing: 'easeOutExpo' });
             this.el.appendChild(fw);
-            setTimeout(() => { if(fw.parentNode) fw.parentNode.removeChild(fw); }, 2500);
+            setTimeout(() => { if(fw.parentNode) fw.parentNode.removeChild(fw); }, 1200);
           }
         },
         createSuperConfetti: function () {
+          this.particlePool++;
           const confetti = document.createElement('a-box');
-          const isStripe = Math.random() > 0.5;
-          const colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFFFFF'];
-          const startX = (Math.random() - 0.5) * 200;
-          const startZ = (Math.random() - 0.5) * 200;
-          confetti.setAttribute('position', `${startX} 100 ${startZ}`);
-          confetti.setAttribute('scale', isStripe ? '0.5 3.5 0.5' : '1.5 1.5 1.5');
-          confetti.setAttribute('color', colors[Math.floor(Math.random() * colors.length)]);
-          confetti.setAttribute('material', 'shader: flat; opacity: 1');
-          const fallDuration = 1000 + Math.random() * 1200; 
-          confetti.setAttribute('animation', {
-            property: 'position', to: `${startX + (Math.random()-0.5)*30} -10 ${startZ + (Math.random()-0.5)*30}`,
-            dur: fallDuration, easing: 'linear'
-          });
-          confetti.setAttribute('animation__rot', {
-            property: 'rotation', to: `${Math.random()*2160} 2160 ${Math.random()*2160}`,
-            dur: 800, loop: true, easing: 'linear'
-          });
+          confetti.setAttribute('position', `${(Math.random()-0.5)*100} 60 ${(Math.random()-0.5)*100}`);
+          confetti.setAttribute('scale', Math.random() > 0.5 ? '0.5 3 0.5' : '1 1 1');
+          confetti.setAttribute('color', ['#FF0000', '#00FF00', '#0000FF', '#FFFF00'][Math.floor(Math.random()*4)]);
+          confetti.setAttribute('material', 'shader: flat');
+          confetti.setAttribute('animation', { property: 'position', to: `${(Math.random()-0.5)*100} -5 ${(Math.random()-0.5)*100}`, dur: 2000, easing: 'linear' });
           this.el.appendChild(confetti);
-          setTimeout(() => { if(confetti.parentNode) confetti.parentNode.removeChild(confetti); }, fallDuration);
+          setTimeout(() => { 
+            if(confetti.parentNode) confetti.parentNode.removeChild(confetti); 
+            this.particlePool--;
+          }, 2000);
         }
       });
 
-      AFRAME.registerComponent('glow-on-hover', {
-        init: function () {
-          this.isCollected = false;
-          this.el.addEventListener('shard-collected', () => {
-            this.isCollected = true;
-            this.el.setAttribute('material', 'emissive: #FFD700; emissiveIntensity: 2.5');
-          });
-        }
-      });
-
-      AFRAME.registerComponent('facility-popup', {
-        schema: { imagePath: { type: 'string' }, title: { type: 'string' }, id: { type: 'string' } },
-        init: function () {
-          this.el.addEventListener('click', () => {
-            const popup = document.getElementById('info-screen');
-            document.getElementById('display-img').src = this.data.imagePath;
-            document.getElementById('info-title').innerText = this.data.title;
-            popup.setAttribute('data-target-id', this.data.id);
-            popup.style.display = 'flex';
-          });
+      // 2. 順滑移動組件
+      AFRAME.registerComponent('smooth-move', {
+        tick: function (time, timeDelta) {
+          const rig = this.el;
+          const camera = document.querySelector('#main-camera');
+          if (!camera) return;
+          const rotation = camera.getAttribute('rotation');
+          const angle = (rotation.y * Math.PI) / 180;
+          const speed = (isRunning ? 1.5 : 0.7) * (timeDelta / 16); 
+          let dx = 0, dz = 0;
+          if (moveKeyStatus.up) { dx -= Math.sin(angle) * speed; dz -= Math.cos(angle) * speed; }
+          if (moveKeyStatus.down) { dx += Math.sin(angle) * speed; dz += Math.cos(angle) * speed; }
+          if (moveKeyStatus.left) { dx -= Math.cos(angle) * speed; dz += Math.sin(angle) * speed; }
+          if (moveKeyStatus.right) { dx += Math.cos(angle) * speed; dz -= Math.sin(angle) * speed; }
+          if (dx !== 0 || dz !== 0) {
+            const pos = rig.getAttribute('position');
+            rig.setAttribute('position', { x: pos.x + dx, y: pos.y, z: pos.z + dz });
+          }
         }
       });
 
       AFRAME.registerComponent('ground-lock-tps', {
         tick: function () {
           const camera = document.querySelector('#main-camera');
-          const abo = this.el;
-          if (!camera || !abo) return;
+          if (!camera) return;
           const camRot = camera.getAttribute('rotation');
-          abo.setAttribute('rotation', { x: 0, y: camRot.y + 90, z: 0 });
+          this.el.setAttribute('rotation', { x: 0, y: camRot.y + 90, z: 0 });
           const angle = (camRot.y * Math.PI) / 180;
-          abo.setAttribute('position', { x: -Math.sin(angle) * 3.0, y: 0, z: -Math.cos(angle) * 3.0 });
+          this.el.setAttribute('position', { x: -Math.sin(angle) * 3, y: 0, z: -Math.cos(angle) * 3 });
         }
       });
 
+      // 3. 邏輯控制
+      function setMove(dir, status) { moveKeyStatus[dir] = status; }
+      function toggleRun() {
+        isRunning = !isRunning;
+        document.getElementById('run-btn').style.background = isRunning ? "#ff4d4d" : "#7ed957";
+      }
       function enterPark() {
         document.getElementById('welcome-overlay').style.display = 'none';
-        document.querySelector('#rig').setAttribute('position', '0 0 40');
         bgmInstance = document.getElementById('happy-bgm');
-        bgmInstance.volume = 0.5;
-        bgmInstance.loop = true;
-        bgmInstance.play().catch(e => console.log("Audio play deferred"));
+        bgmInstance.play().catch(() => {});
       }
-
       function collectShard() {
         const popup = document.getElementById('info-screen');
         const targetId = popup.getAttribute('data-target-id');
         const targetEl = document.getElementById(targetId);
         if (targetEl && !targetEl.classList.contains('collected')) {
           targetEl.classList.add('collected');
-          targetEl.emit('shard-collected');
+          targetEl.setAttribute('material', 'emissive: #FFD700; emissiveIntensity: 2');
           collectedShards++;
           document.getElementById('shard-count').innerText = collectedShards;
           if (collectedShards >= 4) setTimeout(() => { document.getElementById('victory-screen').style.display = 'flex'; }, 500);
         }
-        document.getElementById('info-screen').style.display = 'none';
+        popup.style.display = 'none';
       }
-
-      function startCelebration() {
-        document.getElementById('victory-screen').style.display = 'none';
-        document.getElementById('shard-counter-ui').classList.add('celebration-glow');
-        document.querySelector('a-scene').components['celebration-system'].active = true;
-
-        // 修改：縮短為10秒後彈出稱號
-        setTimeout(() => {
-          document.getElementById('achievement-overlay').style.display = 'flex';
-        }, 10000);
+      function showPopup(id, title, img) {
+        const s = document.getElementById('info-screen');
+        document.getElementById('display-img').src = img;
+        document.getElementById('info-title').innerText = title;
+        s.setAttribute('data-target-id', id);
+        s.style.display = 'flex';
       }
-
-      // 切換至優惠券頁面
-      function showCoupon() {
-        document.getElementById('achievement-overlay').style.display = 'none';
-        document.getElementById('coupon-overlay').style.display = 'flex';
-      }
-
-      function closeAllPopups() {
-        document.getElementById('coupon-overlay').style.display = 'none';
-      }
-
-      let moveInterval = null;
-      let isRunning = false;
-      function toggleRun() {
-        isRunning = !isRunning;
-        document.getElementById('run-btn').style.background = isRunning ? "#ff4d4d" : "#7ed957";
-        document.getElementById('run-btn').innerText = isRunning ? "🔥" : "⚡";
-      }
-      function startMoving(direction) {
-        if (moveInterval) clearInterval(moveInterval);
-        moveInterval = setInterval(() => {
-          const rig = document.querySelector('#rig');
-          const rotation = document.querySelector('#main-camera').getAttribute('rotation');
-          const position = rig.getAttribute('position');
-          const angle = (rotation.y * Math.PI) / 180;
-          const speed = isRunning ? 2.2 : 1.0;
-          let dx = 0, dz = 0;
-          switch(direction) {
-            case 'up': dx = -Math.sin(angle) * speed; dz = -Math.cos(angle) * speed; break;
-            case 'down': dx = Math.sin(angle) * speed; dz = Math.cos(angle) * speed; break;
-            case 'left': dx = -Math.cos(angle) * speed; dz = Math.sin(angle) * speed; break;
-            case 'right': dx = Math.cos(angle) * speed; dz = -Math.sin(angle) * speed; break;
-          }
-          rig.setAttribute('position', { x: position.x + dx, y: position.y, z: position.z + dz });
-        }, 10); 
-      }
-      function stopMoving() { clearInterval(moveInterval); moveInterval = null; }
     </script>
 
     <style>
-      body { margin: 0; overflow: hidden; font-family: 'Courier New', monospace; user-select: none; }
-      #shard-counter-ui {
-        position: fixed; top: 20px; right: 20px; background: rgba(255, 255, 255, 0.92);
-        border: 4px solid #7ed957; color: #333; padding: 12px 24px; z-index: 1000;
-        font-weight: bold; font-size: 24px; border-radius: 15px;
-      }
-      .celebration-glow { color: #FFD700 !important; border-color: #FFD700 !important; box-shadow: 0 0 50px #FFD700 !important; animation: pulse 0.5s infinite alternate; }
-      @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
-
-      #welcome-overlay, #info-screen, #victory-screen, #achievement-overlay, #coupon-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10000; text-align: center; }
-      #welcome-overlay { background: #ffffff; }
-      #info-screen, #victory-screen { background: rgba(255, 255, 255, 0.98); display: none; z-index: 20000; }
-      
-      #achievement-overlay, #coupon-overlay { background: rgba(0, 0, 0, 0.85); display: none; z-index: 40000; }
-      
-      .pixel-card { 
-        background: #FFD700; color: #000; padding: 40px; border: 8px solid #fff; 
-        box-shadow: 0 0 50px #FFD700; border-radius: 20px; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      }
-      .coupon-card { background: #ff4d4d; color: white; box-shadow: 0 0 50px #ff4d4d; }
-
-      @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
-
-      #display-img, #whole-img { max-width: 85%; max-height: 55%; border: 6px solid #7ed957; border-radius: 20px; margin-bottom: 25px; }
-      #whole-img { border-color: #FFD700; }
-
-      .start-btn, .popup-btn, .victory-btn { padding: 20px 50px; font-size: 26px; cursor: pointer; border: none; font-weight: bold; border-radius: 80px; font-family: inherit; }
-      .start-btn { background: #7ed957; color: white; }
-      .victory-btn { background: #FFD700; color: #000; animation: winPulse 0.4s infinite alternate; }
-      @keyframes winPulse { from { transform: scale(1); } to { transform: scale(1.1); } }
-
-      .move-controls { position: fixed; bottom: 35px; right: 35px; z-index: 999; display: grid; grid-template-areas: ". up ." "left run right" ". down ."; gap: 15px; }
-      .pixel-btn { min-width: 75px; height: 75px; background: #7ed957; border: 4px solid #fff; color: white; font-size: 36px; font-weight: bold; cursor: pointer; border-radius: 20px; outline: none; }
+      * { -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; }
+      body { margin: 0; overflow: hidden; background: #fff; font-family: sans-serif; }
+      #shard-counter-ui { position: fixed; top: 10px; right: 10px; background: rgba(255,255,255,0.9); padding: 8px; border-radius: 8px; z-index: 1000; font-weight: bold; }
+      #welcome-overlay, #info-screen, #victory-screen, #achievement-overlay, #coupon-overlay { position: fixed; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:10000; text-align:center; background:#fff; }
+      #info-screen, #victory-screen, #achievement-overlay, #coupon-overlay { display:none; background:rgba(255,255,255,0.98); z-index:20000; }
+      img { max-width: 80%; max-height: 40%; border-radius: 10px; border: 4px solid #7ed957; margin-bottom: 10px; }
+      .btn { padding: 12px 25px; font-size: 18px; border: none; border-radius: 25px; background: #7ed957; color: white; font-weight: bold; margin: 5px; }
+      .move-controls { position: fixed; bottom: 20px; right: 20px; display: grid; grid-template-areas: ". up ." "left run right" ". down ."; gap: 10px; z-index: 999; }
+      .pixel-btn { width: 55px; height: 55px; background: rgba(126,217,87,0.8); border: 2px solid #fff; border-radius: 12px; color: white; font-size: 20px; font-weight: bold; }
     </style>
   </head>
   <body>
 
-    <audio id="happy-bgm" src="audio/happy_bgm.mp3" preload="auto"></audio>
+    <audio id="happy-bgm" src="audio/happy_bgm.mp3" loop></audio>
 
-    <div id="shard-counter-ui">💎 慶典進度: <span id="shard-count">0</span> / 4</div>
+    <div id="shard-counter-ui">💎 <span id="shard-count">0</span> / 4</div>
 
     <div id="welcome-overlay">
-      <h1 style="font-size: 80px; color: #7ed957;">時光樂園</h1>
-      <button class="start-btn" onclick="enterPark()">開啟探索</button>
+      <h1 style="color: #7ed957">時光樂園</h1>
+      <button class="btn" onclick="enterPark()">開始探索</button>
     </div>
 
     <div id="info-screen">
-      <h2 id="info-title" style="color:#7ed957; font-size: 40px;">設施資訊</h2>
+      <h2 id="info-title">設施</h2>
       <img id="display-img" src="">
-      <div>
-        <button class="popup-btn" onclick="collectShard()">領取時光碎片</button>
-        <button class="popup-btn" style="background:#bbb" onclick="document.getElementById('info-screen').style.display='none'">繼續逛逛</button>
-      </div>
+      <button class="btn" onclick="collectShard()">領取碎片</button>
+      <button class="btn" style="background:#888" onclick="document.getElementById('info-screen').style.display='none'">關閉</button>
     </div>
 
     <div id="victory-screen">
-      <h1 style="font-size: 60px; color: #FFD700; margin-bottom: 10px;">✨ 慶典揭幕 ✨</h1>
-      <img id="whole-img" src="picture/whole.jpg">
-      <button class="victory-btn" onclick="startCelebration()">啟動終極派對</button>
+      <h1>✨ 慶典揭幕 ✨</h1>
+      <img src="picture/whole.jpg">
+      <button class="btn" onclick="document.getElementById('victory-screen').style.display='none'; document.querySelector('a-scene').components['celebration-system'].active=true; setTimeout(()=>document.getElementById('achievement-overlay').style.display='flex', 10000)">啟動派對</button>
     </div>
 
     <div id="achievement-overlay">
-      <div class="pixel-card">
-        <h1 style="margin:0; font-size: 50px;">🏆 榮耀時刻 🏆</h1>
-        <p style="font-size: 30px; font-weight: bold; margin: 20px 0;">獲得遊樂園探索家稱號</p>
-        <button class="popup-btn" style="background: #000; color: #FFD700;" onclick="showCoupon()">領取獎勵</button>
+      <div style="background:#FFD700; padding:30px; border-radius:20px; border:5px solid #fff">
+        <h2>🏆 探索家稱號</h2>
+        <button class="btn" style="background:#000" onclick="document.getElementById('achievement-overlay').style.display='none'; document.getElementById('coupon-overlay').style.display='flex'">領取優惠券</button>
       </div>
     </div>
 
     <div id="coupon-overlay">
-      <div class="pixel-card coupon-card">
-        <h1 style="margin:0; font-size: 50px;">🎫 驚喜好禮 🎫</h1>
-        <p style="font-size: 30px; font-weight: bold; margin: 20px 0;">恭喜領取優惠券！</p>
-        <button class="popup-btn" style="background: #fff; color: #ff4d4d;" onclick="closeAllPopups()">立即領取</button>
+      <div style="background:#ff4d4d; padding:30px; border-radius:20px; border:5px solid #fff; color:#fff">
+        <h2>🎫 恭喜獲得優惠券</h2>
+        <button class="btn" style="background:#fff; color:#ff4d4d" onclick="location.reload()">重新遊玩</button>
       </div>
     </div>
 
     <div class="move-controls">
-      <button class="pixel-btn" style="grid-area: up;" onmousedown="startMoving('up')" onmouseup="stopMoving()" ontouchstart="startMoving('up')" ontouchend="stopMoving()">↑</button>
-      <button class="pixel-btn" style="grid-area: left;" onmousedown="startMoving('left')" onmouseup="stopMoving()" ontouchstart="startMoving('left')" ontouchend="stopMoving()">←</button>
+      <button class="pixel-btn" style="grid-area: up;" ontouchstart="setMove('up', true)" ontouchend="setMove('up', false)">↑</button>
+      <button class="pixel-btn" style="grid-area: left;" ontouchstart="setMove('left', true)" ontouchend="setMove('left', false)">←</button>
       <button id="run-btn" class="pixel-btn" style="grid-area: run;" onclick="toggleRun()">⚡</button>
-      <button class="pixel-btn" style="grid-area: right;" onmousedown="startMoving('right')" onmouseup="stopMoving()" ontouchstart="startMoving('right')" ontouchend="stopMoving()">→</button>
-      <button class="pixel-btn" style="grid-area: down;" onmousedown="startMoving('down')" onmouseup="stopMoving()" ontouchstart="startMoving('down')" ontouchend="stopMoving()">↓</button>
+      <button class="pixel-btn" style="grid-area: right;" ontouchstart="setMove('right', true)" ontouchend="setMove('right', false)">→</button>
+      <button class="pixel-btn" style="grid-area: down;" ontouchstart="setMove('down', true)" ontouchend="setMove('down', false)">↓</button>
     </div>
 
-    <a-scene celebration-system shadow="type: pcfsoft" cursor="rayOrigin: mouse" raycaster="objects: .clickable">
+    <a-scene celebration-system renderer="antialias: false; precision: low; powerPreference: high-performance" shadow="enabled: false">
       <a-assets>
-        <a-asset-item id="ferris-wheel-model" src="models/Gemini_glb/ferris_wheel.glb"></a-asset-item>
-        <a-asset-item id="abo-model" src="models/Gemini_glb/abo.glb"></a-asset-item>
-        <a-asset-item id="boat-model" src="models/Gemini_glb/boat.glb"></a-asset-item>
-        <a-asset-item id="car-model" src="models/Gemini_glb/car.glb"></a-asset-item>
-        <a-asset-item id="horse-model" src="models/Gemini_glb/horse.glb"></a-asset-item>
-        <a-asset-item id="castle-model" src="models/Gemini_glb/castle.glb"></a-asset-item>
+        <a-asset-item id="ferris-model" src="models/ferris_wheel.glb"></a-asset-item>
+        <a-asset-item id="abo-model" src="models/abo.glb"></a-asset-item>
+        <a-asset-item id="boat-model" src="models/boat.glb"></a-asset-item>
+        <a-asset-item id="car-model" src="models/car.glb"></a-asset-item>
+        <a-asset-item id="horse-model" src="models/horse.glb"></a-asset-item>
+        <a-asset-item id="castle-model" src="models/castle.glb"></a-asset-item>
       </a-assets>
 
-      <a-entity environment="preset: forest; ground: flat; dressingAmount: 10; dressingScale: 0.8; skyType: gradient; lighting: none;"></a-entity>
-      <a-light type="ambient" color="#FFF" intensity="2.0"></a-light>
-      <a-light type="directional" position="-1 6 3" intensity="1.6" castShadow="true"></a-light>
-
-      <a-entity id="castle-entity" gltf-model="#castle-model" position="0 35 -40" scale="70 70 70" rotation="0 -90 0" shadow></a-entity>
-      
-      <a-entity id="car-entity" class="clickable" gltf-model="#car-model" 
-                position="-30 10.1 30" scale="20 20 20" rotation="0 180 0" shadow
-                glow-on-hover facility-popup="id: car-entity; title: 摩天輪; imagePath: picture/ferris_wheel.jpg"></a-entity>
-      
-      <a-entity id="ferris-wheel-entity" class="clickable" gltf-model="#ferris-wheel-model" 
-                position="-38 3.5 -14" scale="15 15 15" rotation="0 180 0" shadow 
-                glow-on-hover facility-popup="id: ferris-wheel-entity; title: 雲霄飛車; imagePath: picture/car.jpg"
-                animation="property: rotation; to: 0 540 0; dur: 60000; easing: linear; loop: true"></a-entity>
-      
-      <a-entity id="boat-entity" class="clickable" gltf-model="#boat-model" 
-                position="40 14 -5" scale="24 24 24" shadow 
-                glow-on-hover facility-popup="id: boat-entity; title: 海盜船; imagePath: picture/boat.jpg"
-                animation="property: rotation; from: -20 0 0; to: 20 0 0; dur: 3500; dir: alternate; easing: easeInOutSine; loop: true"></a-entity>
-      
-      <a-entity id="horse-entity" class="clickable" gltf-model="#horse-model" 
-                position="35 4 25" scale="10 10 10" shadow 
-                glow-on-hover facility-popup="id: horse-entity; title: 旋轉木馬; imagePath: picture/horse.jpg"
-                animation="property: rotation; to: 0 360 0; dur: 8000; easing: linear; loop: true"></a-entity>
-
-      <a-entity id="rig" position="0 0 40">
-        <a-camera id="main-camera" look-controls wasd-controls position="0 1.6 0" camera="far: 1500; near: 0.1; fov: 60">
-            <a-entity cursor="fuse: false" position="0 0 -1" geometry="primitive: ring; radiusInner: 0.01; radiusOuter: 0.015" material="color: #7ed957; shader: flat"></a-entity>
-        </a-camera>
-        <a-entity id="abo-entity" gltf-model="#abo-model" ground-lock-tps scale="2 2 2" shadow></a-entity>
-      </a-entity>
-    </a-scene>
-  </body>
-</html>
+      <a-entity environment="preset: forest; ground: flat; dressingAmount: 4; dressingScale: 0.5; lighting: none;"></a-entity>
+      <a-light type="ambient" intensity="1.5"></a-light>
+      <a-light type="directional" position="1 2 1"
